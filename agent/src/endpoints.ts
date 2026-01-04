@@ -26,6 +26,7 @@ import { getIssuerIdForCredentialConfigurationId, type IssuanceMetadata } from '
 import { issuers } from './issuers'
 import { getX509DcsCertificate, getX509RootCertificate } from './keyMethods'
 import { oidcUrl } from './oidcProvider/provider'
+import { zTransactionDataSchema } from './schema/transactionData'
 import { LimitedSizeCollection } from './utils/LimitedSizeCollection'
 import { getVerifier, type PlaygroundVerifierOptions } from './verifier'
 import { verifiers } from './verifiers'
@@ -150,7 +151,6 @@ apiRouter.get('/issuers', async (_, response: Response) => {
 
         credentials: Object.values(issuer.credentialConfigurationsSupported).map((values) => {
           const first = Object.values(values)[0]
-
           return {
             display: first.configuration.display[0],
             formats: Object.fromEntries(
@@ -209,7 +209,7 @@ const zCreatePresentationRequestBody = z.object({
   requestScheme: z.string(),
   responseMode: z.enum(['direct_post.jwt', 'direct_post', 'dc_api', 'dc_api.jwt']),
   purpose: z.string().optional(),
-  transactionAuthorizationType: z.enum(['none', 'qes']),
+  transactionData: z.array(zTransactionDataSchema),
   redirectUriBase: z.url().optional(),
 })
 
@@ -222,7 +222,7 @@ apiRouter.post('/requests/create', async (request: Request, response: Response) 
   try {
     const {
       requestSignerType,
-      transactionAuthorizationType,
+      transactionData: txData,
       presentationDefinitionId,
       requestScheme,
       responseMode,
@@ -288,24 +288,24 @@ apiRouter.post('/requests/create', async (request: Request, response: Response) 
                   method: 'x5c',
                   x5c: [x509DcsCertificate, x509RootCertificate],
                 },
-        transactionData:
-          transactionAuthorizationType === 'qes'
-            ? [
-                {
-                  credential_ids: credentialIds as [string, ...string[]],
-                  type: 'qes_authorization',
-                  transaction_data_hashes_alg: ['sha-256'],
-                  signatureQualifier: 'eu_eidas_qes',
-                  documentDigests: [
-                    {
-                      hash: 'some-hash',
-                      label: 'Declaration of Independence.pdf',
-                      hashAlgorithmOID: 'something',
-                    },
-                  ],
-                },
-              ]
-            : undefined,
+        transactionData: txData,
+        // transactionAuthorizationType === 'qes'
+        //   ? [
+        //       {
+        //         credential_ids: credentialIds as [string, ...string[]],
+        //         type: 'qes_authorization',
+        //         transaction_data_hashes_alg: ['sha-256'],
+        //         signatureQualifier: 'eu_eidas_qes',
+        //         documentDigests: [
+        //           {
+        //             hash: 'some-hash',
+        //             label: 'Declaration of Independence.pdf',
+        //             hashAlgorithmOID: 'something',
+        //           },
+        //         ],
+        //       },
+        //     ]
+        //   : undefined,
         dcql: {
           query: queryLanguageDefinition,
         },

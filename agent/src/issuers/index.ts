@@ -15,6 +15,7 @@ export const issuers: PlaygroundIssuerOptions[] = [
   telOrgIssuer,
   mvrcIssuer,
   utopiaGovernmentIssuer,
+  weroIssuer,
 ]
 
 export const issuersCredentialsData = {
@@ -25,4 +26,5 @@ export const issuersCredentialsData = {
   ...telOrgCredentialsData,
   ...mvrcCredentialsData,
   ...utopiaGovernmentData,
+  ...weroCredentialsData,
 }
