@@ -9,14 +9,7 @@ const issuerId = '7cc028a3-8ce2-432a-bf19-5621068586df'
 const localizedCardNames = [
   {
     locale: 'en',
-    name: 'Wero',
-  },
-  {
-    locale: 'de',
-    name: 'Wero',
-  },
-  {
-    locale: 'fr',
+    lang: 'en',
     name: 'Wero',
   },
 ] as const
@@ -24,9 +17,8 @@ const localizedCardNames = [
 const commonWeroCardDisplay = {
   text_color: '#1D1C1C',
   background_color: '#fff48d',
-  logo: {
-    uri: `${AGENT_HOST}/assets/issuers/wero/issuer.svg`,
-    alt_text: 'Wero',
+  background_image: {
+    uri: `${AGENT_HOST}/assets/credentials/wero_background.jpeg`,
   },
 } as const
 
@@ -338,6 +330,151 @@ const weroScaConfiguration = {
         ],
       },
     },
+  ],
+  display: localizedWeroCardDisplay,
+} satisfies SdJwtConfiguration & ZScaAttestationExt
+
+const now = new Date()
+const expiry = new Date()
+expiry.setFullYear(now.getFullYear() + 3)
+
+const weroPayloadClaims = {
+  account_holder_name: 'Erika Mustermann',
+  account_holder_id: '1234567890',
+  account_id: 'DE22123456781234567890',
+  email: 'erika.mustermann@email.com',
+  currency: 'EUR',
+  scheme: 'Wero',
+} as const
+
+const weroScaData = {
+  credentialConfigurationId: weroScaConfiguration.scope,
+  format: weroScaConfiguration.format,
+  credential: {
+    payload: {
+      ...weroPayloadClaims,
+      iat: dateToSeconds(now),
+      nbf: dateToSeconds(now),
+      exp: dateToSeconds(expiry),
+      vct: weroScaConfiguration.vct,
+    },
+    disclosureFrame: {
+      _sd: Object.keys(weroPayloadClaims),
+    },
+  },
+} as const
+
+const coolWeroCardDisplay = {
+  text_color: '#1D1C1C',
+  background_color: '#fff48d',
+  background_image: {
+    uri: `${AGENT_HOST}/assets/credentials/cool_wero.jpeg`,
+  },
+} as const
+
+const localizedCoolWeroCardDisplay = [
+  {
+    locale: 'en',
+    lang: 'en',
+    name: 'Cool Wero',
+    ...coolWeroCardDisplay,
+    rendering: {
+      simple: coolWeroCardDisplay,
+    },
+  },
+] as [CredentialConfigurationDisplay, ...CredentialConfigurationDisplay[]]
+
+const coolWeroScaConfiguration = {
+  format: OpenId4VciCredentialFormatProfile.SdJwtDc,
+  vct: `${AGENT_HOST}/api/vct/${issuerId}/${encodeURI('openid4vc:credential:CoolWeroSca')}`,
+  scope: 'openid4vc:credential:CoolWeroSca',
+  extends: weroScaConfiguration.vct,
+  cryptographic_binding_methods_supported: ['jwk'],
+  credential_signing_alg_values_supported: ['ES256', 'EdDSA'],
+  proof_types_supported: {
+    // TODO: Remove jwt when attestation is supported in paradym, TS12 requires attestation
+    jwt: {
+      proof_signing_alg_values_supported: ['ES256', 'EdDSA'],
+    },
+    attestation: {
+      proof_signing_alg_values_supported: ['ES256', 'EdDSA'],
+      key_attestations_required: {
+        key_storage: ['iso_18045_high'],
+        user_authentication: ['iso_18045_high'],
+      },
+    },
+  },
+  credential_metadata: {
+    display: localizedCoolWeroCardDisplay,
+  },
+  display: localizedCoolWeroCardDisplay,
+} satisfies SdJwtConfiguration
+
+const coolWeroScaData = {
+  credentialConfigurationId: coolWeroScaConfiguration.scope,
+  format: coolWeroScaConfiguration.format,
+  credential: {
+    payload: {
+      ...weroPayloadClaims,
+      iat: dateToSeconds(now),
+      nbf: dateToSeconds(now),
+      exp: dateToSeconds(expiry),
+      vct: coolWeroScaConfiguration.vct,
+    },
+    disclosureFrame: {
+      _sd: Object.keys(weroPayloadClaims),
+    },
+  },
+} as const
+
+const bankAccountCardDisplay = {
+  text_color: '#FFFFFF',
+  background_color: '#61719D',
+  logo: {
+    uri: `${AGENT_HOST}/assets/verifiers/openbank.png`,
+    alt_text: 'Open Horizon Bank',
+  },
+  background_image: {
+    uri: `${AGENT_HOST}/assets/issuers/krankenkasse/credential.png`,
+  },
+} as const
+
+const localizedBankAccountCardDisplay = [
+  {
+    locale: 'en',
+    lang: 'en',
+    name: 'Bank Account',
+    ...bankAccountCardDisplay,
+    rendering: {
+      simple: bankAccountCardDisplay,
+    },
+  },
+] as [CredentialConfigurationDisplay, ...CredentialConfigurationDisplay[]]
+
+const bankAccountScaConfiguration = {
+  format: OpenId4VciCredentialFormatProfile.SdJwtDc,
+  vct: `${AGENT_HOST}/api/vct/${issuerId}/${encodeURI('openid4vc:credential:BankAccountSca')}`,
+  scope: 'openid4vc:credential:BankAccountSca',
+  cryptographic_binding_methods_supported: ['jwk'],
+  credential_signing_alg_values_supported: ['ES256', 'EdDSA'],
+  proof_types_supported: {
+    jwt: {
+      proof_signing_alg_values_supported: ['ES256', 'EdDSA'],
+    },
+    attestation: {
+      proof_signing_alg_values_supported: ['ES256', 'EdDSA'],
+      key_attestations_required: {
+        key_storage: ['iso_18045_high'],
+        user_authentication: ['iso_18045_high'],
+      },
+    },
+  },
+  credential_metadata: {
+    display: localizedBankAccountCardDisplay,
+    claims: weroScaConfiguration.credential_metadata.claims,
+  },
+  category: 'urn:eu:europa:ec:eudi:sua:sca',
+  transaction_data_types: [
     {
       type: URN_SCA_GENERIC,
       subtype: 'login',
@@ -451,94 +588,19 @@ const weroScaConfiguration = {
       },
     },
   ],
-  display: localizedWeroCardDisplay,
+  display: localizedBankAccountCardDisplay,
 } satisfies SdJwtConfiguration & ZScaAttestationExt
 
-const now = new Date()
-const expiry = new Date()
-expiry.setFullYear(now.getFullYear() + 3)
-
-const weroPayloadClaims = {
-  account_holder_name: 'Erika Mustermann',
-  account_holder_id: '1234567890',
-  account_id: 'DE22123456781234567890',
-  email: 'erika.mustermann@email.com',
-  currency: 'EUR',
-  scheme: 'Wero',
-} as const
-
-const weroScaData = {
-  credentialConfigurationId: weroScaConfiguration.scope,
-  format: weroScaConfiguration.format,
+const bankAccountScaData = {
+  credentialConfigurationId: bankAccountScaConfiguration.scope,
+  format: bankAccountScaConfiguration.format,
   credential: {
     payload: {
       ...weroPayloadClaims,
       iat: dateToSeconds(now),
       nbf: dateToSeconds(now),
       exp: dateToSeconds(expiry),
-      vct: weroScaConfiguration.vct,
-    },
-    disclosureFrame: {
-      _sd: Object.keys(weroPayloadClaims),
-    },
-  },
-} as const
-
-const coolWeroCardDisplay = {
-  text_color: '#1D1C1C',
-  background_color: '#fff48d',
-  background_image: {
-    uri: `${AGENT_HOST}/assets/issuers/wero/much_cool.jpeg`,
-  },
-} as const
-
-const localizedCoolWeroCardDisplay = [
-  {
-    locale: 'en',
-    name: 'Cool Wero',
-    ...coolWeroCardDisplay,
-    rendering: {
-      simple: coolWeroCardDisplay,
-    },
-  },
-] as [CredentialConfigurationDisplay, ...CredentialConfigurationDisplay[]]
-
-const coolWeroScaConfiguration = {
-  format: OpenId4VciCredentialFormatProfile.SdJwtDc,
-  vct: `${AGENT_HOST}/api/vct/${issuerId}/${encodeURI('openid4vc:credential:CoolWeroSca')}`,
-  scope: 'openid4vc:credential:CoolWeroSca',
-  extends: weroScaConfiguration.vct,
-  cryptographic_binding_methods_supported: ['jwk'],
-  credential_signing_alg_values_supported: ['ES256', 'EdDSA'],
-  proof_types_supported: {
-    // TODO: Remove jwt when attestation is supported in paradym, TS12 requires attestation
-    jwt: {
-      proof_signing_alg_values_supported: ['ES256', 'EdDSA'],
-    },
-    attestation: {
-      proof_signing_alg_values_supported: ['ES256', 'EdDSA'],
-      key_attestations_required: {
-        key_storage: ['iso_18045_high'],
-        user_authentication: ['iso_18045_high'],
-      },
-    },
-  },
-  credential_metadata: {
-    display: localizedCoolWeroCardDisplay,
-  },
-  display: localizedCoolWeroCardDisplay,
-} satisfies SdJwtConfiguration
-
-const coolWeroScaData = {
-  credentialConfigurationId: coolWeroScaConfiguration.scope,
-  format: coolWeroScaConfiguration.format,
-  credential: {
-    payload: {
-      ...weroPayloadClaims,
-      iat: dateToSeconds(now),
-      nbf: dateToSeconds(now),
-      exp: dateToSeconds(expiry),
-      vct: coolWeroScaConfiguration.vct,
+      vct: bankAccountScaConfiguration.vct,
     },
     disclosureFrame: {
       _sd: Object.keys(weroPayloadClaims),
@@ -547,10 +609,16 @@ const coolWeroScaData = {
 } as const
 
 // TODO: Arf 2.7.3 section 2.6.4 requires "User identification and authentication, for example by presenting a PID" and attestation based proof (WUA) during issuance
-export const weroIssuer = {
+export const openHorizonBankIssuer = {
   tags: [localizedCardNames[0].name, 'TS12 Payment'],
   issuerId,
   credentialConfigurationsSupported: [
+    {
+      [OpenId4VciCredentialFormatProfile.SdJwtDc]: {
+        configuration: bankAccountScaConfiguration,
+        data: bankAccountScaData,
+      },
+    },
     {
       [OpenId4VciCredentialFormatProfile.SdJwtDc]: {
         configuration: weroScaConfiguration,
@@ -566,16 +634,17 @@ export const weroIssuer = {
   ],
   display: [
     {
-      name: 'Wero (Demo)',
+      name: 'Open Horizon Bank (Demo)',
       logo: {
-        url: `${AGENT_HOST}/assets/issuers/wero/issuer.svg`,
-        uri: `${AGENT_HOST}/assets/issuers/wero/issuer.svg`,
+        url: `${AGENT_HOST}/assets/verifiers/openbank.png`,
+        uri: `${AGENT_HOST}/assets/verifiers/openbank.png`,
       },
     },
   ],
 } satisfies PlaygroundIssuerOptions
 
-export const weroCredentialsData = {
+export const openHorizonBankCredentialsData = {
   [weroScaData.credentialConfigurationId]: weroScaData,
   [coolWeroScaData.credentialConfigurationId]: coolWeroScaData,
+  [bankAccountScaData.credentialConfigurationId]: bankAccountScaData,
 }

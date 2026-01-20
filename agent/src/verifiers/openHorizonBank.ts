@@ -6,8 +6,8 @@ import { taxIdSdJwt } from '../issuers/steuern.js'
 import type { PlaygroundVerifierOptions } from '../verifier.js'
 import { pidSdJwtCredential } from './util.js'
 
-const weroIssuerId = '7cc028a3-8ce2-432a-bf19-5621068586df'
-const weroScaVct = `${AGENT_HOST}/api/vct/${weroIssuerId}/${encodeURI('openid4vc:credential:WeroSca')}`
+const issuerId = '7cc028a3-8ce2-432a-bf19-5621068586df'
+const bankAccountScaVct = `${AGENT_HOST}/api/vct/${issuerId}/${encodeURI('openid4vc:credential:BankAccountSca')}`
 
 export const openHorizonBankVerifier = {
   verifierId: '019368e8-54aa-788e-81c4-e60a59a09d87',
@@ -41,11 +41,11 @@ export const openHorizonBankVerifier = {
     },
     {
       name: 'Login to Open Horizon Bank: SCA',
-      purpose: 'Login to your Open Horizon Bank account using Wero',
+      purpose: 'Login to your Open Horizon Bank account using your Bank Account credential',
       credentials: [
         {
           format: 'dc+sd-jwt',
-          vcts: [weroScaVct],
+          vcts: [bankAccountScaVct],
           fields: ['account_holder_id', 'account_id'],
         },
       ],
@@ -64,11 +64,11 @@ export const openHorizonBankVerifier = {
     },
     {
       name: 'Increase Spending Limit: SCA',
-      purpose: 'Increase your spending limit using Wero',
+      purpose: 'Increase your spending limit using your Bank Account credential',
       credentials: [
         {
           format: 'dc+sd-jwt',
-          vcts: [weroScaVct],
+          vcts: [bankAccountScaVct],
           fields: ['account_holder_id', 'account_id'],
         },
       ],
