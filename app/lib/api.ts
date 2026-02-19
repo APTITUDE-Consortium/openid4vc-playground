@@ -119,6 +119,25 @@ export async function receiveOffer(offerUri: string) {
   return response.json()
 }
 
+export async function resolveOffer(offerUri: string) {
+  let uri = offerUri
+  if (offerUri.startsWith('openid-credential-offer://')) {
+    const parsed = new URL(offerUri)
+    const credentialOfferUri = parsed.searchParams.get('credential_offer_uri')
+    if (credentialOfferUri) {
+      uri = credentialOfferUri
+    }
+  }
+
+  const response = await fetch(uri)
+
+  if (!response.ok) {
+    throw new Error('Failed to resolve offer')
+  }
+
+  return response.json()
+}
+
 export async function createRequest(data: {
   requestSignerType: 'x5c' | 'openid-federation' | 'none'
   presentationDefinitionId: string

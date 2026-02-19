@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { createOffer, getIssuers, type Issuers } from '../lib/api'
+import { createOffer, getIssuers, type Issuers, resolveOffer } from '../lib/api'
 import { PlaygroundAlert } from './PlaygroundAlert'
 import { CardRadioItem, CredentialCardRadioItem, MiniRadioItem } from './ui/radio'
 import { Switch } from './ui/switch'
@@ -38,6 +38,7 @@ export function IssueTab({
 
   const [selectedAuthorization, setSelectedAuthorization] = useState<string>('none')
   const [selectedDeferBy, setDeferBy] = useState<string>('none')
+  const [useDigitalCredentials, setUseDigitalCredentials] = useState<boolean>(false)
 
   const [credentialOfferUri, setCredentialOfferUri] = useState<string>()
   const [userPin, setUserPin] = useState<string>()
@@ -68,6 +69,7 @@ export function IssueTab({
       if (query.dpop) setRequireDpop(query.dpop === 'true')
       if (query.walletAttestation) setRequireWalletAttestation(query.walletAttestation === 'true')
       if (query.keyAttestation) setRequireKeyAttestation(query.keyAttestation === 'true')
+      if (query.useDigitalCredentials) setUseDigitalCredentials(query.useDigitalCredentials === 'true')
     })
   }, [issuers, searchParams])
 
@@ -84,6 +86,7 @@ export function IssueTab({
     params.set('dpop', `${requireDpop}`)
     params.set('keyAttestation', `${requireKeyAttestation}`)
     params.set('walletAttestation', `${requireWalletAttestation}`)
+    params.set('useDigitalCredentials', `${useDigitalCredentials}`)
     if (credentialType !== undefined) params.set('credentialType', `${credentialType}`)
 
     const existingSearchParams = new URLSearchParams(searchParams.toString())
@@ -107,6 +110,7 @@ export function IssueTab({
     requireDpop,
     requireKeyAttestation,
     requireWalletAttestation,
+    useDigitalCredentials,
   ])
 
   async function onSubmitIssueCredential(e: FormEvent) {
@@ -128,6 +132,25 @@ export function IssueTab({
     })
     setCredentialOfferUri(offer.credentialOffer)
     setUserPin(offer.issuanceSession.userPin)
+
+    if (useDigitalCredentials) {
+      try {
+        const offerData = await resolveOffer(offer.credentialOffer)
+        await navigator.credentials.create({
+          // @ts-expect-error
+          digital: {
+            requests: [
+              {
+                protocol: 'openid4vci-v1',
+                data: offerData,
+              },
+            ],
+          },
+        })
+      } catch (error) {
+        console.error('Error requesting credential', error)
+      }
+    }
   }
 
   const copyConfiguration = async () => {
@@ -326,52 +349,64 @@ export function IssueTab({
             onCheckedChange={setRequireKeyAttestation}
           />
         </div>
-        <div className="flex justify-center items-center bg-gray-200 min-h-64 w-full rounded-md">
-          {credentialOfferUri ? (
-            <TooltipProvider>
-              <Tooltip>
-                <div className="flex flex-col p-5 gap-2 justify-center items-center gap-6">
-                  <div className="bg-white p-5 rounded-md w-[296px]">
-                    <QRCode size={256} value={credentialOfferUri} />
-                  </div>
-                  <TooltipTrigger asChild>
-                    {/* biome-ignore lint/a11y/useKeyWithClickEvents: no explanation */}
-                    <p
-                      onClick={(e) => navigator.clipboard.writeText(e.currentTarget.innerText)}
-                      className="text-gray-500 break-all cursor-pointer"
-                    >
-                      {credentialOfferUri}
-                    </p>
-                  </TooltipTrigger>
-                  <div className="gap-2 w-full justify-center flex flex-1">
-                    <div>
-                      <Link href={credentialOfferUri}>
-                        <Button type="button">Open in Wallet</Button>
-                      </Link>
-                    </div>
-                    <div>
-                      <Link href={credentialOfferUri.replace('openid-credential-offer://', 'id.animo.paradym:')}>
-                        <Button type="button">Open in Paradym Wallet</Button>
-                      </Link>
-                    </div>
-                  </div>
-                  {userPin && (
-                    <div>
-                      <strong>Transaction Code: </strong>
-                      {userPin}
-                    </div>
-                  )}
-                </div>
-
-                <TooltipContent>
-                  <p>Click to copy</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : (
-            <p className="text-gray-500 break-all">Credential offer will be displayed here</p>
-          )}
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="use-digital-credentials">Use Digital Credentials API</Label>
+          <Switch
+            id="use-digital-credentials"
+            name="use-digital-credentials"
+            required
+            checked={useDigitalCredentials}
+            onCheckedChange={setUseDigitalCredentials}
+          />
         </div>
+        {!useDigitalCredentials && (
+          <div className="flex justify-center items-center bg-gray-200 min-h-64 w-full rounded-md">
+            {credentialOfferUri ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <div className="flex flex-col p-5 gap-2 justify-center items-center gap-6">
+                    <div className="bg-white p-5 rounded-md w-[296px]">
+                      <QRCode size={256} value={credentialOfferUri} />
+                    </div>
+                    <TooltipTrigger asChild>
+                      {/* biome-ignore lint/a11y/useKeyWithClickEvents: no explanation */}
+                      <p
+                        onClick={(e) => navigator.clipboard.writeText(e.currentTarget.innerText)}
+                        className="text-gray-500 break-all cursor-pointer"
+                      >
+                        {credentialOfferUri}
+                      </p>
+                    </TooltipTrigger>
+                    <div className="gap-2 w-full justify-center flex flex-1">
+                      <div>
+                        <Link href={credentialOfferUri}>
+                          <Button type="button">Open in Wallet</Button>
+                        </Link>
+                      </div>
+                      <div>
+                        <Link href={credentialOfferUri.replace('openid-credential-offer://', 'id.animo.paradym:')}>
+                          <Button type="button">Open in Paradym Wallet</Button>
+                        </Link>
+                      </div>
+                    </div>
+                    {userPin && (
+                      <div>
+                        <strong>Transaction Code: </strong>
+                        {userPin}
+                      </div>
+                    )}
+                  </div>
+
+                  <TooltipContent>
+                    <p>Click to copy</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <p className="text-gray-500 break-all">Credential offer will be displayed here</p>
+            )}
+          </div>
+        )}
         <Button
           onClick={onSubmitIssueCredential}
           disabled={disabled}
